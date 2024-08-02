@@ -11,6 +11,7 @@ func (cfg *apiConfig) handlerLogin(w http.ResponseWriter, r *http.Request) {
 	type parameters struct {
 		Password string `json:"password"`
 		Email    string `json:"email"`
+		ExpiresInSeconds uint 	`json:"expires_in_seconds"`
 	}
 	type response struct {
 		User
@@ -36,10 +37,27 @@ func (cfg *apiConfig) handlerLogin(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	jwtToken, err := auth.GenerateJwt(user.ID, cfg.jwsSecter)
+
+	if err != nil {
+		respondWithError(w, http.StatusInternalServerError, "Couldn't create auth token")
+		return
+	}
+
+	refreshToken := auth.GenerateRefreshToken()
+
+	refreshTokenDto, err := cfg.DB.CreateRefreshToken(refreshToken, &user)
+	if err != nil {
+		respondWithError(w, http.StatusInternalServerError, "Couldn't create auth token")
+		return
+	}
+
 	respondWithJSON(w, http.StatusOK, response{
 		User: User{
 			ID:    user.ID,
 			Email: user.Email,
+			Token: jwtToken,
+			RefreshToken: refreshTokenDto.ID,
 		},
 	})
 }
