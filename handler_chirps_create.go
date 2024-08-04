@@ -5,14 +5,29 @@ import (
 	"errors"
 	"net/http"
 	"strings"
+	"strconv"
+	"github.com/roman-hushpit/Chirpy/internal/auth"
 )
 
 type Chirp struct {
 	ID   int    `json:"id"`
+	AuthorId int  `json:"author_id"`
 	Body string `json:"body"`
 }
 
 func (cfg *apiConfig) handlerChirpsCreate(w http.ResponseWriter, r *http.Request) {
+	authToken := strings.TrimSpace(strings.TrimPrefix(r.Header.Get("Authorization"), "Bearer"))
+	if len(authToken) == 0 {
+		respondWithError(w, 401, "Token not present")
+		return
+	}
+
+	userId, vError := auth.ValidateToken(authToken, cfg.jwsSecter)
+	if vError != nil {
+		respondWithError(w, 401, "Unauthorized")
+		return
+	}
+
 	type parameters struct {
 		Body string `json:"body"`
 	}
@@ -30,8 +45,8 @@ func (cfg *apiConfig) handlerChirpsCreate(w http.ResponseWriter, r *http.Request
 		respondWithError(w, http.StatusBadRequest, err.Error())
 		return
 	}
-
-	chirp, err := cfg.DB.CreateChirp(cleaned)
+	id, _ := strconv.Atoi(userId)
+	chirp, err := cfg.DB.CreateChirp(cleaned, id)
 	if err != nil {
 		respondWithError(w, http.StatusInternalServerError, "Couldn't create chirp")
 		return
@@ -40,6 +55,7 @@ func (cfg *apiConfig) handlerChirpsCreate(w http.ResponseWriter, r *http.Request
 	respondWithJSON(w, http.StatusCreated, Chirp{
 		ID:   chirp.ID,
 		Body: chirp.Body,
+		AuthorId: chirp.AuthorId,
 	})
 }
 

@@ -58,6 +58,7 @@ func (cfg *apiConfig) handlerLogin(w http.ResponseWriter, r *http.Request) {
 			Email: user.Email,
 			Token: jwtToken,
 			RefreshToken: refreshTokenDto.ID,
+			IsChirpyRed: user.IsChirpyRed,
 		},
 	})
 }

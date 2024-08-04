@@ -15,6 +15,7 @@ type apiConfig struct {
 	fileserverHits int
 	DB             *database.DB
 	jwsSecter 	   string
+	polkaApiKey    string
 }
 
 func main() {
@@ -44,6 +45,7 @@ func main() {
 		fileserverHits: 0,
 		DB:             db,
 		jwsSecter: os.Getenv("JWT_SECRET"),
+		polkaApiKey: os.Getenv("POLKA_API_KEY"),
 	}
 
 	mux := http.NewServeMux()
@@ -62,9 +64,15 @@ func main() {
 
 	mux.HandleFunc("POST /api/chirps", apiCfg.handlerChirpsCreate)
 	mux.HandleFunc("GET /api/chirps", apiCfg.handlerChirpsRetrieve)
+	mux.HandleFunc("DELETE /api/chirps/{chirpID}", apiCfg.handlerChirpsDelete)
+
+
 	mux.HandleFunc("GET /api/chirps/{chirpID}", apiCfg.handlerChirpsGet)
 
 	mux.HandleFunc("GET /admin/metrics", apiCfg.handlerMetrics)
+
+
+	mux.HandleFunc("POST /api/polka/webhooks", apiCfg.handlerWebhook)
 
 	srv := &http.Server{
 		Addr:    ":" + port,
